@@ -16,6 +16,9 @@ export async function GET(request: NextRequest) {
     const search = searchParams.get("search")
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "10")
+    const sort = searchParams.get("sort") || "desc"
+    const startDate = searchParams.get("startDate")
+    const endDate = searchParams.get("endDate")
     const skip = (page - 1) * limit
 
     // Build where clause
@@ -31,6 +34,21 @@ export async function GET(request: NextRequest) {
         { customer: { is: { name: { contains: search } } } },
       ]
     }
+
+    // Add date range filter
+    if (startDate || endDate) {
+      where.createdAt = {}
+      if (startDate) {
+        where.createdAt.gte = new Date(startDate)
+      }
+      if (endDate) {
+        where.createdAt.lte = new Date(endDate)
+      }
+    }
+
+    // Validate sort parameter
+    const validSortValues = ["asc", "desc"]
+    const orderBy = validSortValues.includes(sort) ? sort : "desc"
 
     // Get bills with customer and user info
     const bills = await prisma.bill.findMany({
@@ -51,7 +69,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: {
-        createdAt: "desc",
+        createdAt: orderBy as "asc" | "desc",
       },
       skip,
       take: limit,
@@ -68,6 +86,7 @@ export async function GET(request: NextRequest) {
         total,
         pages: Math.ceil(total / limit),
       },
+      sort: orderBy,
     })
   } catch (error) {
     console.error("Error fetching bills:", error)
@@ -101,37 +120,54 @@ export async function POST(request: NextRequest) {
       billNumber = `BILL-${String(lastNumber + 1).padStart(3, "0")}`
     }
 
-    // Create bill with items
-    const bill = await prisma.bill.create({
-      data: {
-        billNumber,
-        customerId,
-        userId: session.user.id,
-        subtotal,
-        tax,
-        discount,
-        total,
-        status: paymentStatus || "PENDING",
-        items: {
-          create: items.map((item: any) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-            price: item.price,
-            total: item.total,
-          })),
-        },
-      },
-      include: {
-        customer: true,
-        items: {
-          include: {
-            product: true,
+    // Use a transaction to ensure both bill creation and stock updates happen together
+    const result = await prisma.$transaction(async (tx) => {
+      // Create bill with items
+      const bill = await tx.bill.create({
+        data: {
+          billNumber,
+          customerId,
+          userId: session.user.id,
+          subtotal,
+          tax,
+          discount,
+          total,
+          status: paymentStatus || "PENDING",
+          items: {
+            create: items.map((item: any) => ({
+              productId: item.productId,
+              quantity: item.quantity,
+              price: item.price,
+              total: item.total,
+            })),
           },
         },
-      },
+        include: {
+          customer: true,
+          items: {
+            include: {
+              product: true,
+            },
+          },
+        },
+      })
+
+      // Update stock for each product
+      for (const item of items) {
+        await tx.product.update({
+          where: { id: item.productId },
+          data: {
+            stock: {
+              decrement: item.quantity
+            }
+          }
+        })
+      }
+
+      return bill
     })
 
-    return NextResponse.json(bill, { status: 201 })
+    return NextResponse.json(result, { status: 201 })
   } catch (error) {
     console.error("Error creating bill:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
