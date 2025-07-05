@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS `User` (
     emailVerified DATETIME(3),
     image VARCHAR(191),
     role ENUM('ADMIN', 'STAFF') NOT NULL DEFAULT 'STAFF',
+    companyName VARCHAR(191) DEFAULT 'My Company',
     createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     updatedAt DATETIME(3) NOT NULL
 );
