@@ -1,6 +1,7 @@
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { TrendingUp, Calendar, DollarSign } from "lucide-react"
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface Sale {
   id: string
@@ -15,6 +16,7 @@ interface RecentSalesProps {
 }
 
 export function RecentSales({ sales }: RecentSalesProps) {
+  const { symbol } = useCurrency();
   if (sales.length === 0) {
   return (
       <div className="text-center py-12">
@@ -52,7 +54,7 @@ export function RecentSales({ sales }: RecentSalesProps) {
               </p>
               <Badge variant="secondary" className="text-xs font-medium">
                 <DollarSign className="h-3 w-3 mr-1" />
-                +${sale.amount.toLocaleString()}
+                +{symbol}{sale.amount.toLocaleString()}
               </Badge>
         </div>
             <div className="flex items-center space-x-4">

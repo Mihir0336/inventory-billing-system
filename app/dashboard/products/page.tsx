@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { ProductDialog } from "@/components/products/product-dialog"
 import { Plus, Search, Package, AlertTriangle } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface Product {
   id: string
@@ -25,6 +26,7 @@ interface Product {
 }
 
 export default function ProductsPage() {
+  const { symbol } = useCurrency();
   const [products, setProducts] = useState<Product[]>([])
   const [searchTerm, setSearchTerm] = useState("")
   const [isDialogOpen, setIsDialogOpen] = useState(false)
@@ -214,11 +216,11 @@ export default function ProductsPage() {
               <div className="space-y-2">
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Price:</span>
-                  <span className="font-medium">${product.price.toFixed(2)}</span>
+                  <span className="font-medium">{symbol}{product.price.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Cost:</span>
-                  <span className="font-medium">${product.cost.toFixed(2)}</span>
+                  <span className="font-medium">{symbol}{product.cost.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-sm text-muted-foreground">Category:</span>

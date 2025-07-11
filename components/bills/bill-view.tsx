@@ -11,6 +11,7 @@ import { useToast } from "@/hooks/use-toast"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 // @ts-ignore: No types for html2pdf.js
 import html2pdf from 'html2pdf.js'
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface BillItem {
   id: string
@@ -57,6 +58,7 @@ interface BillViewProps {
 }
 
 export function BillView({ billId, open, onOpenChange, onStatusChange }: BillViewProps) {
+  const { symbol } = useCurrency();
   const [bill, setBill] = useState<Bill | null>(null)
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
@@ -296,8 +298,8 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
                       <td className="border px-3 py-1 text-gray-900">{item.product.name}</td>
                       <td className="border px-3 py-1 text-gray-900">{item.product.sku}</td>
                       <td className="border px-3 py-1 text-right text-gray-900">{item.quantity}</td>
-                      <td className="border px-3 py-1 text-right text-gray-900">₹{item.price.toFixed(2)}</td>
-                      <td className="border px-3 py-1 text-right text-gray-900">₹{item.total.toFixed(2)}</td>
+                      <td className="border px-3 py-1 text-right text-gray-900">{symbol}{item.price.toFixed(2)}</td>
+                      <td className="border px-3 py-1 text-right text-gray-900">{symbol}{item.total.toFixed(2)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -309,19 +311,19 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
                 <tbody>
                   <tr>
                     <td className="pr-4 font-bold text-gray-800 text-lg">Subtotal:</td>
-                    <td className="text-gray-900 font-bold text-lg">₹{bill.subtotal.toFixed(2)}</td>
+                    <td className="text-gray-900 font-bold text-lg">{symbol}{bill.subtotal.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="pr-4 font-bold text-gray-800 text-lg">Tax:</td>
-                    <td className="text-gray-900 font-bold text-lg">₹{bill.tax.toFixed(2)}</td>
+                    <td className="text-gray-900 font-bold text-lg">{symbol}{bill.tax.toFixed(2)}</td>
                   </tr>
                   <tr>
                     <td className="pr-4 font-bold text-gray-800 text-lg">Discount:</td>
-                    <td className="text-gray-900 font-bold text-lg">₹{bill.discount.toFixed(2)}</td>
+                    <td className="text-gray-900 font-bold text-lg">{symbol}{bill.discount.toFixed(2)}</td>
                   </tr>
                   <tr className="text-2xl">
                     <td className="pr-4 font-extrabold text-gray-900">Total:</td>
-                    <td className="text-gray-900 font-extrabold text-2xl">₹{bill.total.toFixed(2)}</td>
+                    <td className="text-gray-900 font-extrabold text-2xl">{symbol}{bill.total.toFixed(2)}</td>
                   </tr>
                 </tbody>
               </table>
@@ -402,8 +404,8 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
                     <TableCell className="dark:text-zinc-200">{item.product.name}</TableCell>
                     <TableCell className="dark:text-zinc-200">{item.product.sku}</TableCell>
                     <TableCell className="dark:text-zinc-200">{item.quantity}</TableCell>
-                    <TableCell className="dark:text-zinc-200">₹{item.price.toFixed(2)}</TableCell>
-                    <TableCell className="dark:text-zinc-200">₹{item.total.toFixed(2)}</TableCell>
+                    <TableCell className="dark:text-zinc-200">{symbol}{item.price.toFixed(2)}</TableCell>
+                    <TableCell className="dark:text-zinc-200">{symbol}{item.total.toFixed(2)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>
@@ -425,10 +427,10 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
               )}
             </div>
             <div className="space-y-1 text-right dark:text-zinc-100">
-              <div>Subtotal: <span className="font-semibold">₹{bill.subtotal.toFixed(2)}</span></div>
-              <div>Tax: <span className="font-semibold">₹{bill.tax.toFixed(2)}</span></div>
-              <div>Discount: <span className="font-semibold">₹{bill.discount.toFixed(2)}</span></div>
-              <div className="text-lg font-bold">Total: ₹{bill.total.toFixed(2)}</div>
+              <div>Subtotal: <span className="font-semibold">{symbol}{bill.subtotal.toFixed(2)}</span></div>
+              <div>Tax: <span className="font-semibold">{symbol}{bill.tax.toFixed(2)}</span></div>
+              <div>Discount: <span className="font-semibold">{symbol}{bill.discount.toFixed(2)}</span></div>
+              <div className="text-lg font-bold">Total: {symbol}{bill.total.toFixed(2)}</div>
             </div>
           </div>
         </div>

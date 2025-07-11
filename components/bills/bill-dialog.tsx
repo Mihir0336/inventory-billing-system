@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface Customer {
   id: string
@@ -44,6 +45,7 @@ interface BillDialogProps {
 }
 
 export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProps) {
+  const { symbol } = useCurrency();
   const [customers, setCustomers] = useState<Customer[]>([])
   const [products, setProducts] = useState<Product[]>([])
   const [selectedCustomer, setSelectedCustomer] = useState("")
@@ -367,8 +369,8 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
                             </div>
                           </TableCell>
                           <TableCell>{item.quantity}</TableCell>
-                          <TableCell>₹{item.price.toFixed(2)}</TableCell>
-                          <TableCell>₹{item.total.toFixed(2)}</TableCell>
+                          <TableCell>{symbol}{item.price.toFixed(2)}</TableCell>
+                          <TableCell>{symbol}{item.total.toFixed(2)}</TableCell>
                           <TableCell>
                             <Button
                               variant="ghost"
@@ -393,11 +395,11 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
             <div>
               <Label>Subtotal</Label>
-              <div className="text-lg font-semibold">₹{subtotal.toFixed(2)}</div>
+              <div className="text-lg font-semibold">{symbol}{subtotal.toFixed(2)}</div>
             </div>
             <div>
               <Label>Tax (10%)</Label>
-              <div className="text-lg font-semibold">₹{tax.toFixed(2)}</div>
+              <div className="text-lg font-semibold">{symbol}{tax.toFixed(2)}</div>
             </div>
             <div>
               <Label>Discount</Label>
@@ -411,7 +413,7 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
             </div>
             <div>
               <Label>Total</Label>
-              <div className="text-xl font-bold">₹{total.toFixed(2)}</div>
+              <div className="text-xl font-bold">{symbol}{total.toFixed(2)}</div>
             </div>
           </div>
           <div className="flex justify-end gap-2 mt-4">

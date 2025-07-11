@@ -12,6 +12,7 @@ import { Separator } from "@/components/ui/separator"
 import { Badge } from "@/components/ui/badge"
 import { useToast } from "@/hooks/use-toast"
 import { Bell, Shield, Settings, Palette, Database, Globe } from "lucide-react"
+import { useCurrency } from "@/components/ui/currency-context"
 
 export default function SettingsPage() {
   const [emailNotifications, setEmailNotifications] = useState(true)
@@ -24,6 +25,7 @@ export default function SettingsPage() {
   const [companyName, setCompanyName] = useState("My Company")
   const [isLoading, setIsLoading] = useState(false)
   const { toast } = useToast()
+  const { currency, setCurrency } = useCurrency()
 
   // Fetch company name on component mount
   useEffect(() => {
@@ -154,7 +156,7 @@ export default function SettingsPage() {
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label htmlFor="currency">Default Currency</Label>
-                  <Select defaultValue="usd">
+                  <Select value={currency} onValueChange={setCurrency}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select currency" />
                     </SelectTrigger>

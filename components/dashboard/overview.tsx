@@ -1,6 +1,7 @@
 "use client"
 
 import { Bar, BarChart, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from "recharts"
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface OverviewProps {
   data: Array<{
@@ -10,6 +11,7 @@ interface OverviewProps {
 }
 
 export function Overview({ data }: OverviewProps) {
+  const { symbol } = useCurrency();
   return (
     <div className="w-full h-[350px] p-4">
       <ResponsiveContainer width="100%" height="100%">
@@ -34,7 +36,7 @@ export function Overview({ data }: OverviewProps) {
           fontSize={12}
           tickLine={false}
           axisLine={false}
-            tickFormatter={(value) => `$${value.toLocaleString()}`}
+            tickFormatter={(value) => `${symbol}${value.toLocaleString()}`}
             tick={{ fill: 'hsl(var(--muted-foreground))' }}
         />
           <Tooltip 
@@ -45,7 +47,7 @@ export function Overview({ data }: OverviewProps) {
               boxShadow: '0 4px 6px -1px hsl(var(--foreground) / 0.1)',
             }}
             labelStyle={{ color: 'hsl(var(--foreground))', fontWeight: '600' }}
-            formatter={(value: any) => [`$${value.toLocaleString()}`, 'Total']}
+            formatter={(value: any) => [`${symbol}${value.toLocaleString()}`, 'Total']}
           />
           <Bar 
             dataKey="total" 

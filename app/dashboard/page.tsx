@@ -7,6 +7,7 @@ import { RecentSales } from "@/components/dashboard/recent-sales"
 import { DollarSign, Package, Users, TrendingUp, Loader2, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Badge } from "@/components/ui/badge"
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface DashboardData {
   metrics: {
@@ -32,6 +33,7 @@ interface DashboardData {
 }
 
 export default function Dashboard() {
+  const { symbol } = useCurrency();
   const [data, setData] = useState<DashboardData | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
@@ -119,7 +121,7 @@ export default function Dashboard() {
             </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-foreground">${data.metrics.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-foreground">{symbol}{data.metrics.totalRevenue.toLocaleString()}</div>
             <div className="flex items-center space-x-2 mt-2">
               {data.metrics.revenueGrowth >= 0 ? (
                 <ArrowUpRight className="h-4 w-4 text-success" />

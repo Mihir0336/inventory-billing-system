@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line, PieChart, Pie, Cell } from "recharts"
 import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package, Loader2 } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface AnalyticsData {
   metrics: {
@@ -24,6 +25,7 @@ interface AnalyticsData {
 }
 
 export default function AnalyticsPage() {
+  const { symbol } = useCurrency();
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const { toast } = useToast()
@@ -117,7 +119,7 @@ export default function AnalyticsPage() {
             <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.metrics.totalRevenue.toLocaleString()}</div>
+            <div className="text-2xl font-bold">{symbol}{data.metrics.totalRevenue.toLocaleString()}</div>
             <p className="text-xs text-muted-foreground">
               <span className="text-green-600">+20.1%</span> from last month
             </p>
@@ -156,7 +158,7 @@ export default function AnalyticsPage() {
             <Package className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${data.metrics.avgOrderValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">{symbol}{data.metrics.avgOrderValue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground">
               <span className="text-red-600">-2.1%</span> from last month
             </p>
@@ -210,7 +212,7 @@ export default function AnalyticsPage() {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-sm font-medium">${transaction.total.toFixed(2)}</p>
+                        <p className="text-sm font-medium">{symbol}{transaction.total.toFixed(2)}</p>
                         <Badge variant={transaction.status === "PAID" ? "default" : "secondary"}>
                           {transaction.status}
                         </Badge>
@@ -292,7 +294,7 @@ export default function AnalyticsPage() {
                       </div>
                       <div className="text-right">
                         <p className="text-sm font-medium">
-                          ${parseFloat(product._sum.total).toFixed(2)}
+                          {symbol}{parseFloat(product._sum.total).toFixed(2)}
                         </p>
                         <p className="text-xs text-green-600">+{Math.floor(Math.random() * 20)}%</p>
                       </div>

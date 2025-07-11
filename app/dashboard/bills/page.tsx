@@ -16,6 +16,7 @@ import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
 import { addDays, startOfDay, endOfDay } from 'date-fns'
+import { useCurrency } from "@/components/ui/currency-context";
 
 interface Bill {
   id: string
@@ -49,6 +50,7 @@ interface GroupedBills {
 }
 
 export default function BillsPage() {
+  const { symbol } = useCurrency();
   const [bills, setBills] = useState<Bill[]>([])
   const [groupedBills, setGroupedBills] = useState<GroupedBills>({})
   const [loading, setLoading] = useState(true)
@@ -352,7 +354,7 @@ export default function BillsPage() {
                                 )}
                               </TableCell>
                               <TableCell>
-                                <span className="font-medium">${bill.total.toFixed(2)}</span>
+                                <span className="font-medium">{symbol}{bill.total.toFixed(2)}</span>
                               </TableCell>
                               <TableCell>{getStatusBadge(bill.status)}</TableCell>
                               <TableCell>
