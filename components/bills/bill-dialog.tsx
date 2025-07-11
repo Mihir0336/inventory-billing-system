@@ -11,6 +11,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Plus, Trash2, X } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 interface Customer {
   id: string
@@ -57,48 +58,49 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
   const [paymentStatus, setPaymentStatus] = useState<"PENDING" | "PAID">("PENDING")
   const { toast } = useToast()
 
-  // Fetch customers and products
+  // Pagination for customers/products
+  const [customerPage, setCustomerPage] = useState(1)
+  const [customerPages, setCustomerPages] = useState(1)
+  const [productPage, setProductPage] = useState(1)
+  const [productPages, setProductPages] = useState(1)
+  const [loadingCustomers, setLoadingCustomers] = useState(false)
+  const [loadingProducts, setLoadingProducts] = useState(false)
+
+  // Fetch customers and products with pagination
   useEffect(() => {
     const fetchData = async () => {
       try {
-        console.log("Fetching customers and products...")
+        setLoadingCustomers(true)
+        setLoadingProducts(true)
         const [customersRes, productsRes] = await Promise.all([
-          fetch("/api/customers"),
-          fetch("/api/products")
+          fetch(`/api/customers?page=${customerPage}&limit=10`),
+          fetch(`/api/products?page=${productPage}&limit=10`)
         ])
-
-        console.log("Customers response status:", customersRes.status)
-        console.log("Products response status:", productsRes.status)
-
         if (customersRes.ok) {
           const customersData = await customersRes.json()
-          console.log("Customers data:", customersData)
-          setCustomers(customersData.customers || [])
-        } else {
-          console.error("Failed to fetch customers:", await customersRes.text())
+          setCustomers(prev => customerPage === 1 ? customersData.customers : [...prev, ...customersData.customers])
+          setCustomerPages(customersData.pagination.pages)
         }
-
         if (productsRes.ok) {
           const productsData = await productsRes.json()
-          console.log("Products data:", productsData)
-          setProducts(productsData.products || [])
-        } else {
-          console.error("Failed to fetch products:", await productsRes.text())
+          setProducts(prev => productPage === 1 ? productsData.products : [...prev, ...productsData.products])
+          setProductPages(productsData.pagination.pages)
         }
       } catch (error) {
-        console.error("Error fetching data:", error)
         toast({
           title: "Error",
           description: "Failed to load customers and products. Please try again.",
           variant: "destructive",
         })
+      } finally {
+        setLoadingCustomers(false)
+        setLoadingProducts(false)
       }
     }
-
     if (open) {
       fetchData()
     }
-  }, [open, toast])
+  }, [open, customerPage, productPage])
 
   // Calculate totals when items change
   useEffect(() => {
@@ -265,56 +267,74 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {/* Customer Selection */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="customer">Customer</Label>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Customer Card */}
+          <div className="col-span-1 space-y-4">
+            <div className="rounded-lg border bg-card p-6 shadow-sm">
+              <Label htmlFor="customer" className="mb-2 block">Customer</Label>
               <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger>
+                <SelectTrigger className="py-3 px-4">
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
-                  {customers.map((customer) => (
-                    <SelectItem key={customer.id} value={customer.id}>
-                      {customer.name} ({customer.email})
-                    </SelectItem>
-                  ))}
+                  <ScrollArea className="h-48">
+                    {customers.map((customer) => (
+                      <SelectItem
+                        key={customer.id}
+                        value={customer.id}
+                        className="py-3 px-4 hover:bg-muted/40 transition-colors rounded flex flex-col items-start gap-0.5"
+                      >
+                        <span className="font-semibold text-base leading-tight">{customer.name}</span>
+                        <span className="text-xs text-muted-foreground leading-tight">{customer.email}</span>
+                      </SelectItem>
+                    ))}
+                    {customerPage < customerPages && (
+                      <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setCustomerPage(p => p + 1)} disabled={loadingCustomers}>
+                        {loadingCustomers ? "Loading..." : "Load More"}
+                      </Button>
+                    )}
+                  </ScrollArea>
                 </SelectContent>
               </Select>
             </div>
 
-            {/* Product Selection */}
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="product">Product</Label>
-                <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a product" />
-                  </SelectTrigger>
-                  <SelectContent>
+            {/* Product Card */}
+            <div className="rounded-lg border bg-card p-6 shadow-sm space-y-2">
+              <Label htmlFor="product" className="mb-2 block">Product</Label>
+              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+                <SelectTrigger className="py-3 px-4">
+                  <SelectValue placeholder="Select a product" />
+                </SelectTrigger>
+                <SelectContent>
+                  <ScrollArea className="h-48">
                     {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id}>
-                        {product.name} - ${product.price} (Stock: {product.stock})
+                      <SelectItem key={product.id} value={product.id} className="flex flex-col items-start py-2 px-3">
+                        <span className="font-medium">{product.name} <span className="text-xs text-muted-foreground">({product.sku})</span></span>
+                        <span className="text-xs text-muted-foreground">₹{product.price} | Stock: <span className={product.stock < 5 ? 'text-red-500 font-bold' : ''}>{product.stock}</span></span>
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="flex gap-2">
+                    {productPage < productPages && (
+                      <Button variant="ghost" size="sm" className="w-full mt-2" onClick={() => setProductPage(p => p + 1)} disabled={loadingProducts}>
+                        {loadingProducts ? "Loading..." : "Load More"}
+                      </Button>
+                    )}
+                  </ScrollArea>
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2 mt-4">
                 <div className="flex-1">
-                  <Label htmlFor="quantity">Quantity</Label>
+                  <Label htmlFor="quantity" className="mb-2 block">Quantity</Label>
                   <Input
                     id="quantity"
                     type="number"
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
+                    className="py-3 px-4"
                   />
                 </div>
                 <div className="flex items-end">
-                  <Button onClick={handleAddItem} disabled={!selectedProduct}>
+                  <Button onClick={handleAddItem} disabled={!selectedProduct} className="mt-4">
                     <Plus className="h-4 w-4" />
                   </Button>
                 </div>
@@ -322,65 +342,67 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
             </div>
           </div>
 
-          {/* Bill Items */}
-          <div className="space-y-4">
-            <Label>Bill Items</Label>
-            {billItems.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No items added yet
-              </div>
-            ) : (
-              <div className="border rounded-lg">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Product</TableHead>
-                      <TableHead>Qty</TableHead>
-                      <TableHead>Price</TableHead>
-                      <TableHead>Total</TableHead>
-                      <TableHead></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {billItems.map((item, index) => (
-                      <TableRow key={index}>
-                        <TableCell>
-                          <div>
-                            <div className="font-medium">{item.productName}</div>
-                            <div className="text-sm text-muted-foreground">{item.sku}</div>
-                          </div>
-                        </TableCell>
-                        <TableCell>{item.quantity}</TableCell>
-                        <TableCell>${item.price.toFixed(2)}</TableCell>
-                        <TableCell>${item.total.toFixed(2)}</TableCell>
-                        <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveItem(index)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </TableCell>
+          {/* Bill Items Card */}
+          <div className="col-span-2 space-y-4">
+            <div className="rounded-lg border bg-card p-4 shadow-sm">
+              <Label>Bill Items</Label>
+              {billItems.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  No items added yet
+                </div>
+              ) : (
+                <div className="border rounded-lg overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Product</TableHead>
+                        <TableHead>Qty</TableHead>
+                        <TableHead>Price</TableHead>
+                        <TableHead>Total</TableHead>
+                        <TableHead></TableHead>
                       </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+                    </TableHeader>
+                    <TableBody>
+                      {billItems.map((item, index) => (
+                        <TableRow key={index} className="hover:bg-muted/30">
+                          <TableCell>
+                            <div>
+                              <div className="font-medium">{item.productName}</div>
+                              <div className="text-xs text-muted-foreground">{item.sku}</div>
+                            </div>
+                          </TableCell>
+                          <TableCell>{item.quantity}</TableCell>
+                          <TableCell>₹{item.price.toFixed(2)}</TableCell>
+                          <TableCell>₹{item.total.toFixed(2)}</TableCell>
+                          <TableCell>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveItem(index)}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Bill Summary */}
-        <div className="border-t pt-4">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* Sticky Bill Summary */}
+        <div className="sticky bottom-0 left-0 right-0 bg-background border-t pt-4 z-10">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 items-end">
             <div>
               <Label>Subtotal</Label>
-              <div className="text-lg font-semibold">${subtotal.toFixed(2)}</div>
+              <div className="text-lg font-semibold">₹{subtotal.toFixed(2)}</div>
             </div>
             <div>
               <Label>Tax (10%)</Label>
-              <div className="text-lg font-semibold">${tax.toFixed(2)}</div>
+              <div className="text-lg font-semibold">₹{tax.toFixed(2)}</div>
             </div>
             <div>
               <Label>Discount</Label>
@@ -394,32 +416,18 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
             </div>
             <div>
               <Label>Total</Label>
-              <div className="text-xl font-bold">${total.toFixed(2)}</div>
+              <div className="text-xl font-bold">₹{total.toFixed(2)}</div>
             </div>
           </div>
-          
-          <div className="mt-4">
-            <Label>Payment Status</Label>
-            <Select value={paymentStatus} onValueChange={(value: "PENDING" | "PAID") => setPaymentStatus(value)}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select payment status" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="PENDING">Pending</SelectItem>
-                <SelectItem value="PAID">Paid</SelectItem>
-              </SelectContent>
-            </Select>
+          <div className="flex justify-end gap-2 mt-4">
+            <Button variant="outline" onClick={handleClose} disabled={loading}>
+              Cancel
+            </Button>
+            <Button onClick={handleCreateBill} disabled={loading || !selectedCustomer || billItems.length === 0}>
+              {loading ? "Creating..." : "Create Bill"}
+            </Button>
           </div>
         </div>
-
-        <DialogFooter>
-          <Button variant="outline" onClick={handleClose}>
-            Cancel
-          </Button>
-          <Button onClick={handleCreateBill} disabled={loading || billItems.length === 0}>
-            {loading ? "Creating..." : "Create Bill"}
-          </Button>
-        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
