@@ -15,6 +15,7 @@ import { BillView } from "@/components/bills/bill-view"
 import { format } from "date-fns"
 import { Calendar } from "@/components/ui/calendar"
 import { cn } from "@/lib/utils"
+import { addDays, startOfDay, endOfDay } from 'date-fns'
 
 interface Bill {
   id: string
@@ -63,6 +64,11 @@ export default function BillsPage() {
   const [billViewOpen, setBillViewOpen] = useState(false)
   const [selectedBillId, setSelectedBillId] = useState<string>("")
   const { toast } = useToast()
+  const today = new Date()
+  const [showDateInputs, setShowDateInputs] = useState(false)
+  const [inputFrom, setInputFrom] = useState<string>(startOfDay(today).toISOString().slice(0, 10))
+  const [inputTo, setInputTo] = useState<string>(endOfDay(today).toISOString().slice(0, 10))
+  const [isRangeActive, setIsRangeActive] = useState(false)
 
   const groupBillsByDate = (bills: Bill[]) => {
     const grouped: GroupedBills = {}
@@ -84,29 +90,43 @@ export default function BillsPage() {
     return grouped
   }
 
+  // By default, show only today's bills
+  useEffect(() => {
+    if (!isRangeActive) {
+      setInputFrom(startOfDay(today).toISOString().slice(0, 10))
+      setInputTo(endOfDay(today).toISOString().slice(0, 10))
+    }
+  }, [isRangeActive])
+
   const fetchBills = async () => {
     try {
       setLoading(true)
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        sort: "desc", // Always sort by newest first
+        sort: "desc",
       })
-
       if (statusFilter !== "all") {
         params.append("status", statusFilter)
       }
-
       if (searchTerm) {
         params.append("search", searchTerm)
       }
-
+      if (isRangeActive && inputFrom && inputTo) {
+        params.append("from", new Date(inputFrom).toISOString())
+        // Use endOfDay for the 'to' date
+        const toDate = new Date(inputTo)
+        toDate.setHours(23, 59, 59, 999)
+        params.append("to", toDate.toISOString())
+      } else {
+        // Default to today
+        params.append("from", startOfDay(today).toISOString())
+        params.append("to", endOfDay(today).toISOString())
+      }
       const response = await fetch(`/api/bills?${params}`)
-      
       if (!response.ok) {
         throw new Error("Failed to fetch bills")
       }
-
       const data: BillsResponse = await response.json()
       setBills(data.bills)
       setGroupedBills(groupBillsByDate(data.bills))
@@ -125,7 +145,7 @@ export default function BillsPage() {
 
   useEffect(() => {
     fetchBills()
-  }, [pagination.page, statusFilter])
+  }, [pagination.page, statusFilter, inputFrom, inputTo, isRangeActive])
 
   useEffect(() => {
     // Debounce search
@@ -201,7 +221,53 @@ export default function BillsPage() {
           <CardDescription>View and manage all bills in your system</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex gap-4 mb-6 flex-wrap">
+          <div className="flex gap-4 mb-6 flex-wrap items-center">
+            {/* Date Range Filter Button and Inputs */}
+            <Button variant={isRangeActive ? "default" : "outline"} size="sm" onClick={() => setShowDateInputs((v) => !v)}>
+              {isRangeActive ? `${inputFrom} - ${inputTo}` : "Filter by Date Range"}
+            </Button>
+            {showDateInputs && (
+              <div className="flex items-center gap-2">
+                <label className="font-medium">From:</label>
+                <input
+                  type="date"
+                  value={inputFrom}
+                  onChange={e => setInputFrom(e.target.value)}
+                  className="border rounded px-2 py-1"
+                  max={inputTo}
+                />
+                <label className="font-medium">To:</label>
+                <input
+                  type="date"
+                  value={inputTo}
+                  onChange={e => setInputTo(e.target.value)}
+                  className="border rounded px-2 py-1"
+                  min={inputFrom}
+                />
+                <Button
+                  size="sm"
+                  onClick={() => {
+                    setIsRangeActive(true)
+                    setShowDateInputs(false)
+                  }}
+                  disabled={!inputFrom || !inputTo}
+                >
+                  Apply
+                </Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => {
+                    setIsRangeActive(false)
+                    setInputFrom(startOfDay(today).toISOString().slice(0, 10))
+                    setInputTo(endOfDay(today).toISOString().slice(0, 10))
+                    setShowDateInputs(false)
+                  }}
+                >
+                  Reset
+                </Button>
+              </div>
+            )}
             <div className="flex-1 min-w-[200px]">
               <div className="relative">
                 <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />

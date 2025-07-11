@@ -17,6 +17,9 @@ export async function GET(request: NextRequest) {
     const page = parseInt(searchParams.get("page") || "1")
     const limit = parseInt(searchParams.get("limit") || "10")
     const sort = searchParams.get("sort") || "desc"
+    // Support both 'from'/'to' and 'startDate'/'endDate' for date filtering
+    const from = searchParams.get("from")
+    const to = searchParams.get("to")
     const startDate = searchParams.get("startDate")
     const endDate = searchParams.get("endDate")
     const skip = (page - 1) * limit
@@ -36,13 +39,15 @@ export async function GET(request: NextRequest) {
     }
 
     // Add date range filter
-    if (startDate || endDate) {
+    const dateFrom = from || startDate
+    const dateTo = to || endDate
+    if (dateFrom || dateTo) {
       where.createdAt = {}
-      if (startDate) {
-        where.createdAt.gte = new Date(startDate)
+      if (dateFrom) {
+        where.createdAt.gte = new Date(dateFrom)
       }
-      if (endDate) {
-        where.createdAt.lte = new Date(endDate)
+      if (dateTo) {
+        where.createdAt.lte = new Date(dateTo)
       }
     }
 
