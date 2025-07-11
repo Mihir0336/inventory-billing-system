@@ -8,6 +8,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { BadgeCheck, Printer, Download, X, Building2, User, Calendar, Hash } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+// @ts-ignore: No types for html2pdf.js
+import html2pdf from 'html2pdf.js'
 
 interface BillItem {
   id: string
@@ -58,6 +61,7 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
   const [loading, setLoading] = useState(false)
   const [updating, setUpdating] = useState(false)
   const { toast } = useToast()
+  const [originalTitle, setOriginalTitle] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && billId) {
@@ -101,13 +105,51 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
     }
   }
 
+  const setPrintTitle = () => {
+    if (!bill) return;
+    const customerName = bill.customer?.name?.toLowerCase().replace(/\s+/g, '_') || 'invoice';
+    const filename = `${customerName}_${bill.billNumber}`;
+    setOriginalTitle(document.title);
+    document.title = filename;
+  };
+
+  const restoreTitle = () => {
+    if (originalTitle) {
+      document.title = originalTitle;
+    }
+  };
+
   const handlePrint = () => {
-    window.print()
-  }
+    setPrintTitle();
+    setTimeout(() => {
+      window.print();
+      setTimeout(restoreTitle, 1000);
+    }, 100);
+  };
 
   const handleDownload = () => {
     // TODO: Implement PDF download
     console.log("Download PDF functionality to be implemented")
+  }
+
+  const handleDownloadPDF = () => {
+    if (!bill) return;
+    // Compose filename: e.g. sarah_johnson_BILL-005.pdf
+    const customerName = bill.customer?.name?.toLowerCase().replace(/\s+/g, '_') || 'invoice';
+    const filename = `${customerName}_${bill.billNumber}.pdf`;
+    // Find the print area
+    const printArea = document.getElementById('bill-print-area');
+    if (!printArea) return;
+    html2pdf()
+      .set({
+        margin: 0,
+        filename,
+        image: { type: 'jpeg', quality: 0.98 },
+        html2canvas: { scale: 2 },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' }
+      })
+      .from(printArea)
+      .save();
   }
 
   const markAsPaid = async () => {
@@ -175,14 +217,26 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
               )}
             </span>
             <div className="flex gap-2">
-              <Button variant="outline" size="sm" onClick={handlePrint}>
-                <Printer className="h-4 w-4 mr-2" />
-                Print
-              </Button>
-              <Button variant="outline" size="sm" onClick={handleDownload}>
-                <Download className="h-4 w-4 mr-2" />
-                Download
-              </Button>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={handlePrint}>
+                      <Printer className="h-4 w-4 mr-2" />
+                      Print
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="center" sideOffset={8}>Print this bill</TooltipContent>
+                </Tooltip>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="outline" size="sm" onClick={handleDownloadPDF}>
+                      <Download className="h-4 w-4 mr-2" />
+                      Download
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom" align="center" sideOffset={8}>Download as PDF</TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
               <Button variant="outline" size="sm" onClick={() => onOpenChange(false)}>
                 <X className="h-4 w-4" />
               </Button>
@@ -190,7 +244,99 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-8 print:space-y-4">
+        {/* Print Header - only visible in print mode, but also used for PDF download */}
+        <div id="bill-print-area" className="hidden print:block print:bg-gray-100 print:p-10">
+          <div className="max-w-2xl mx-auto border-2 border-gray-700 rounded-xl shadow-xl p-10 bg-white">
+            {/* Logo and Company Name */}
+            <div className="flex items-center gap-4 mb-8">
+              <img src="/placeholder-logo.png" alt="Company Logo" className="h-14 w-14 object-contain" />
+              <div>
+                <div className="text-4xl font-extrabold tracking-tight text-gray-900">INVENTORY BILLING SYSTEM</div>
+                <div className="text-base text-gray-700 font-medium">Professional Invoice</div>
+              </div>
+              <div className="flex-1" />
+              <div className="text-right">
+                <div className="font-bold text-xl text-gray-900">Bill #: {bill.billNumber}</div>
+                <div className="text-base text-gray-700">{new Date(bill.createdAt).toLocaleDateString()}</div>
+                <div className="mt-2">{getStatusBadge(bill.status)}</div>
+              </div>
+            </div>
+            {/* Customer & Issuer Info */}
+            <div className="grid grid-cols-2 gap-8 mb-8">
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><User className='h-5 w-5'/> Customer</div>
+                <div className="text-gray-900 font-semibold">{bill.customer?.name}</div>
+                <div className="text-sm text-gray-700">Email: {bill.customer?.email}</div>
+                <div className="text-sm text-gray-700">Phone: {bill.customer?.phone}</div>
+                <div className="text-sm text-gray-700">Address: {bill.customer?.address}</div>
+              </div>
+              <div className="border border-gray-200 rounded-lg p-4 bg-gray-50">
+                <div className="font-bold text-lg text-gray-800 mb-2 flex items-center gap-2"><User className='h-5 w-5'/> Created By</div>
+                <div className="text-gray-900 font-semibold">{bill.user?.name}</div>
+                <div className="text-sm text-gray-700">Created: {new Date(bill.createdAt).toLocaleString()}</div>
+                <div className="text-sm text-gray-700">Updated: {new Date(bill.updatedAt).toLocaleString()}</div>
+              </div>
+            </div>
+            {/* Items Table */}
+            <div className="mb-8">
+              <div className="font-bold text-lg text-gray-800 mb-2">Bill Items</div>
+              <table className="w-full border border-gray-300 rounded overflow-hidden">
+                <thead>
+                  <tr className="bg-gray-100">
+                    <th className="border px-3 py-2 text-left text-gray-800">Product</th>
+                    <th className="border px-3 py-2 text-left text-gray-800">SKU</th>
+                    <th className="border px-3 py-2 text-right text-gray-800">Quantity</th>
+                    <th className="border px-3 py-2 text-right text-gray-800">Price</th>
+                    <th className="border px-3 py-2 text-right text-gray-800">Total</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {bill.items.map(item => (
+                    <tr key={item.id}>
+                      <td className="border px-3 py-1 text-gray-900">{item.product.name}</td>
+                      <td className="border px-3 py-1 text-gray-900">{item.product.sku}</td>
+                      <td className="border px-3 py-1 text-right text-gray-900">{item.quantity}</td>
+                      <td className="border px-3 py-1 text-right text-gray-900">₹{item.price.toFixed(2)}</td>
+                      <td className="border px-3 py-1 text-right text-gray-900">₹{item.total.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {/* Totals */}
+            <div className="flex justify-end mb-8">
+              <table className="text-right bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <tbody>
+                  <tr>
+                    <td className="pr-4 font-bold text-gray-800 text-lg">Subtotal:</td>
+                    <td className="text-gray-900 font-bold text-lg">₹{bill.subtotal.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="pr-4 font-bold text-gray-800 text-lg">Tax:</td>
+                    <td className="text-gray-900 font-bold text-lg">₹{bill.tax.toFixed(2)}</td>
+                  </tr>
+                  <tr>
+                    <td className="pr-4 font-bold text-gray-800 text-lg">Discount:</td>
+                    <td className="text-gray-900 font-bold text-lg">₹{bill.discount.toFixed(2)}</td>
+                  </tr>
+                  <tr className="text-2xl">
+                    <td className="pr-4 font-extrabold text-gray-900">Total:</td>
+                    <td className="text-gray-900 font-extrabold text-2xl">₹{bill.total.toFixed(2)}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            {/* Footer */}
+            <div className="text-center text-gray-700 text-base border-t pt-6 mt-8">
+              <p className="font-semibold">Thank you for your business!</p>
+              <p className="text-sm">For queries, contact: support@yourcompany.com | +91-12345-67890</p>
+              <p className="text-xs mt-2">This is a computer-generated invoice.</p>
+            </div>
+          </div>
+        </div>
+        {/* End Print Header */}
+        {/* Normal Dialog Content (hidden in print) */}
+        <div className="space-y-8 print:hidden">
           {/* Header */}
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-4">
             <div>
