@@ -21,6 +21,8 @@ export function Header() {
   const router = useRouter()
   const pathname = usePathname()
   const [companyName, setCompanyName] = useState("My Company")
+  const [notifications, setNotifications] = useState<any[]>([])
+  const [loadingNotifications, setLoadingNotifications] = useState(false)
 
   const fetchCompanyName = async () => {
     try {
@@ -60,6 +62,24 @@ export function Header() {
     }
   }, [pathname, session])
 
+  // Fetch notifications (low stock)
+  const fetchNotifications = async () => {
+    setLoadingNotifications(true)
+    try {
+      const res = await fetch("/api/notifications")
+      if (res.ok) {
+        const data = await res.json()
+        setNotifications(data.notifications || [])
+      } else {
+        setNotifications([])
+      }
+    } catch (e) {
+      setNotifications([])
+    } finally {
+      setLoadingNotifications(false)
+    }
+  }
+
   return (
     <header className="bg-gradient-to-r from-background via-background to-muted/20 border-b border-border/50 backdrop-blur-sm sticky top-0 z-50">
       <div className="flex items-center justify-between px-6 py-4">
@@ -78,14 +98,38 @@ export function Header() {
         </div>
 
         <div className="flex items-center space-x-3">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="relative hover:bg-muted/50 transition-colors duration-200"
-          >
-            <Bell className="h-5 w-5" />
-            <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full animate-pulse"></span>
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="ghost"
+                size="sm"
+                className="relative hover:bg-muted/50 transition-colors duration-200"
+                onClick={fetchNotifications}
+              >
+                <Bell className="h-5 w-5" />
+                {notifications.length > 0 && (
+                  <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full animate-pulse"></span>
+                )}
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-80 p-2">
+              <DropdownMenuLabel className="font-semibold">Notifications</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {loadingNotifications ? (
+                <div className="p-4 text-center text-muted-foreground text-sm">Loading...</div>
+              ) : notifications.length === 0 ? (
+                <div className="p-4 text-center text-muted-foreground text-sm">No notifications</div>
+              ) : (
+                notifications.map((notif) => (
+                  <DropdownMenuItem key={notif.id} className="flex flex-col items-start gap-1 cursor-default">
+                    <span className="font-medium">{notif.name}</span>
+                    <span className="text-xs text-muted-foreground">Stock: {notif.stock} (Min: {notif.minStock})</span>
+                    <span className="text-xs text-muted-foreground">Category: {notif.category}</span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
 
           <ModeToggle />
 
