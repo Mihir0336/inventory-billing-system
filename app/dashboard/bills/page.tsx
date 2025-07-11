@@ -306,7 +306,7 @@ export default function BillsPage() {
       </Card>
 
       <BillDialog open={billDialogOpen} onOpenChange={setBillDialogOpen} onBillCreated={handleBillCreated} />
-      <BillView open={billViewOpen} onOpenChange={setBillViewOpen} billId={selectedBillId} />
+      <BillView open={billViewOpen} onOpenChange={setBillViewOpen} billId={selectedBillId} onStatusChange={fetchBills} />
     </div>
   )
 } 

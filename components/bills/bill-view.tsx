@@ -121,8 +121,11 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
       })
       if (!response.ok) throw new Error("Failed to update bill status")
       toast({ title: "Success", description: "Bill marked as paid." })
-      fetchBill()
+      // Instantly update the bill status in UI
+      setBill(prev => prev ? { ...prev, status: "PAID" } : prev)
       if (onStatusChange) onStatusChange()
+      // Optionally, re-fetch the bill for latest data
+      // await fetchBill()
     } catch (error) {
       toast({ title: "Error", description: "Could not mark bill as paid.", variant: "destructive" })
     } finally {
