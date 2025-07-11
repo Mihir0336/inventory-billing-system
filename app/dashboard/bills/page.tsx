@@ -69,6 +69,9 @@ export default function BillsPage() {
   const [inputFrom, setInputFrom] = useState<string>(startOfDay(today).toISOString().slice(0, 10))
   const [inputTo, setInputTo] = useState<string>(endOfDay(today).toISOString().slice(0, 10))
   const [isRangeActive, setIsRangeActive] = useState(false)
+  // Change setBills to append when loading more
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [isFirstLoad, setIsFirstLoad] = useState(true)
 
   const groupBillsByDate = (bills: Bill[]) => {
     const grouped: GroupedBills = {}
@@ -98,9 +101,10 @@ export default function BillsPage() {
     }
   }, [isRangeActive])
 
-  const fetchBills = async () => {
+  const fetchBills = async (append = false) => {
     try {
-      setLoading(true)
+      if (append) setIsLoadingMore(true)
+      else setLoading(true)
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
@@ -114,12 +118,10 @@ export default function BillsPage() {
       }
       if (isRangeActive && inputFrom && inputTo) {
         params.append("from", new Date(inputFrom).toISOString())
-        // Use endOfDay for the 'to' date
         const toDate = new Date(inputTo)
         toDate.setHours(23, 59, 59, 999)
         params.append("to", toDate.toISOString())
       } else {
-        // Default to today
         params.append("from", startOfDay(today).toISOString())
         params.append("to", endOfDay(today).toISOString())
       }
@@ -128,9 +130,15 @@ export default function BillsPage() {
         throw new Error("Failed to fetch bills")
       }
       const data: BillsResponse = await response.json()
-      setBills(data.bills)
-      setGroupedBills(groupBillsByDate(data.bills))
+      if (append) {
+        setBills(prev => [...prev, ...data.bills])
+        setGroupedBills(groupBillsByDate([...bills, ...data.bills]))
+      } else {
+        setBills(data.bills)
+        setGroupedBills(groupBillsByDate(data.bills))
+      }
       setPagination(data.pagination)
+      setIsFirstLoad(false)
     } catch (error) {
       console.error("Error fetching bills:", error)
       toast({
@@ -139,12 +147,13 @@ export default function BillsPage() {
         variant: "destructive",
       })
     } finally {
-      setLoading(false)
+      if (append) setIsLoadingMore(false)
+      else setLoading(false)
     }
   }
 
   useEffect(() => {
-    fetchBills()
+    fetchBills(false)
   }, [pagination.page, statusFilter, inputFrom, inputTo, isRangeActive])
 
   useEffect(() => {
@@ -366,6 +375,19 @@ export default function BillsPage() {
                   </div>
                 ))
               )}
+            </div>
+          )}
+          {pagination.page < pagination.pages && (
+            <div className="flex justify-center my-4">
+              <Button
+                onClick={() => {
+                  setPagination(prev => ({ ...prev, page: prev.page + 1 }))
+                  fetchBills(true)
+                }}
+                disabled={isLoadingMore}
+              >
+                {isLoadingMore ? "Loading..." : "Load More"}
+              </Button>
             </div>
           )}
         </CardContent>

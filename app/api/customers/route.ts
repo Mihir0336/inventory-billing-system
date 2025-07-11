@@ -10,6 +10,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
+    // Pagination
+    const { searchParams } = new URL(request.url)
+    const page = parseInt(searchParams.get("page") || "1")
+    const limit = parseInt(searchParams.get("limit") || "10")
+    const skip = (page - 1) * limit
+
     const customers = await prisma.customer.findMany({
       include: {
         _count: {
@@ -17,9 +23,20 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: { createdAt: "desc" },
+      skip,
+      take: limit,
     })
+    const total = await prisma.customer.count()
 
-    return NextResponse.json({ customers })
+    return NextResponse.json({
+      customers,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages: Math.ceil(total / limit),
+      },
+    })
   } catch (error) {
     console.error("Error fetching customers:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
