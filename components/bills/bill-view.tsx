@@ -86,11 +86,16 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
   const getStatusBadge = (status: string) => {
     switch (status) {
       case "PAID":
-        return <Badge className="bg-green-100 text-green-800 flex items-center gap-1"><BadgeCheck className="h-3 w-3" />Paid</Badge>
+        return (
+          <span className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-green-100 border border-green-300 text-green-900 font-semibold text-base shadow-sm dark:bg-green-900 dark:border-green-700 dark:text-green-200">
+            <BadgeCheck className="h-5 w-5 text-green-700 dark:text-green-200" />
+            Paid
+          </span>
+        )
       case "PENDING":
-        return <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
+        return <Badge className="bg-yellow-100 text-yellow-800 font-semibold text-base px-4 py-1 rounded-full dark:bg-yellow-900 dark:text-yellow-200">Pending</Badge>
       case "CANCELLED":
-        return <Badge className="bg-red-100 text-red-800">Cancelled</Badge>
+        return <Badge className="bg-red-100 text-red-800 font-semibold text-base px-4 py-1 rounded-full dark:bg-red-900 dark:text-red-200">Cancelled</Badge>
       default:
         return <Badge>{status}</Badge>
     }
@@ -160,7 +165,12 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
       <DialogContent hideClose className="max-w-4xl max-h-[90vh] overflow-y-auto print:max-w-none print:overflow-visible scrollbar-hide">
         <DialogHeader className="print:hidden">
           <DialogTitle className="flex items-center justify-between">
-            <span>Bill Details</span>
+            <span className="text-2xl font-bold flex items-center gap-2">
+              Bill Details
+              {bill && (
+                <span className="ml-2">{getStatusBadge(bill.status)}</span>
+              )}
+            </span>
             <div className="flex gap-2">
               <Button variant="outline" size="sm" onClick={handlePrint}>
                 <Printer className="h-4 w-4 mr-2" />
@@ -177,167 +187,100 @@ export function BillView({ billId, open, onOpenChange, onStatusChange }: BillVie
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 print:space-y-4">
+        <div className="space-y-8 print:space-y-4">
           {/* Header */}
-          <div className="flex justify-between items-start border-b pb-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center border-b pb-4 gap-4">
             <div>
               <div className="flex items-center gap-2 mb-2">
-                <Building2 className="h-6 w-6" />
-                <h1 className="text-2xl font-bold">INVENTORY BILLING SYSTEM</h1>
+                <Building2 className="h-6 w-6 text-primary" />
+                <h1 className="text-2xl font-bold tracking-tight">INVENTORY BILLING SYSTEM</h1>
               </div>
               <p className="text-muted-foreground">Professional Invoice</p>
             </div>
-            <div className="text-right">
-              <div className="flex items-center gap-2 mb-2">
+            <div className="text-right space-y-2">
+              <div className="flex items-center gap-2">
                 <Hash className="h-4 w-4" />
                 <span className="font-semibold">{bill.billNumber}</span>
               </div>
-              <div className="flex items-center gap-2 mb-2">
+              <div className="flex items-center gap-2">
                 <Calendar className="h-4 w-4" />
                 <span>{new Date(bill.createdAt).toLocaleDateString()}</span>
               </div>
-              {getStatusBadge(bill.status)}
             </div>
           </div>
 
-          {/* Customer and Bill Info */}
+          {/* Customer & User Info */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <User className="h-4 w-4" />
-                  Customer Information
-                </CardTitle>
+            <Card className="bg-gray-50 border border-gray-200 dark:bg-zinc-900 dark:border-zinc-700">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2"><User className="h-5 w-5" /> Customer</CardTitle>
+                <CardDescription className="dark:text-zinc-200">{bill.customer?.name}</CardDescription>
               </CardHeader>
-              <CardContent>
-                {bill.customer ? (
-                  <div className="space-y-2">
-                    <div>
-                      <span className="font-semibold">Name:</span> {bill.customer.name}
-                    </div>
-                    {bill.customer.email && (
-                      <div>
-                        <span className="font-semibold">Email:</span> {bill.customer.email}
-                      </div>
-                    )}
-                    {bill.customer.phone && (
-                      <div>
-                        <span className="font-semibold">Phone:</span> {bill.customer.phone}
-                      </div>
-                    )}
-                    {bill.customer.address && (
-                      <div>
-                        <span className="font-semibold">Address:</span> {bill.customer.address}
-                      </div>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-muted-foreground">No customer information</p>
-                )}
+              <CardContent className="space-y-1 text-sm dark:text-zinc-200">
+                <div>Email: {bill.customer?.email}</div>
+                <div>Phone: {bill.customer?.phone}</div>
+                <div>Address: {bill.customer?.address}</div>
               </CardContent>
             </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Bill Information</CardTitle>
+            <Card className="bg-gray-50 border border-gray-200 dark:bg-zinc-900 dark:border-zinc-700">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg flex items-center gap-2"><User className="h-5 w-5" /> Created By</CardTitle>
+                <CardDescription className="dark:text-zinc-200">{bill.user?.name}</CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  <div>
-                    <span className="font-semibold">Bill Number:</span> {bill.billNumber}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Date:</span> {new Date(bill.createdAt).toLocaleDateString()}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Created By:</span> {bill.user.name}
-                  </div>
-                  <div>
-                    <span className="font-semibold">Status:</span> {getStatusBadge(bill.status)}
-                  </div>
-                </div>
+              <CardContent className="space-y-1 text-sm dark:text-zinc-200">
+                <div>Created: {new Date(bill.createdAt).toLocaleString()}</div>
+                <div>Updated: {new Date(bill.updatedAt).toLocaleString()}</div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Bill Items */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Bill Items</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Product</TableHead>
-                    <TableHead>SKU</TableHead>
-                    <TableHead className="text-right">Quantity</TableHead>
-                    <TableHead className="text-right">Price</TableHead>
-                    <TableHead className="text-right">Total</TableHead>
+          {/* Items Table */}
+          <div className="bg-white rounded-lg border border-gray-200 p-4 dark:bg-zinc-900 dark:border-zinc-700">
+            <h2 className="text-lg font-semibold mb-2 dark:text-zinc-100">Bill Items</h2>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="dark:text-zinc-300">Product</TableHead>
+                  <TableHead className="dark:text-zinc-300">SKU</TableHead>
+                  <TableHead className="dark:text-zinc-300">Quantity</TableHead>
+                  <TableHead className="dark:text-zinc-300">Price</TableHead>
+                  <TableHead className="dark:text-zinc-300">Total</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {bill.items.map(item => (
+                  <TableRow key={item.id}>
+                    <TableCell className="dark:text-zinc-200">{item.product.name}</TableCell>
+                    <TableCell className="dark:text-zinc-200">{item.product.sku}</TableCell>
+                    <TableCell className="dark:text-zinc-200">{item.quantity}</TableCell>
+                    <TableCell className="dark:text-zinc-200">₹{item.price.toFixed(2)}</TableCell>
+                    <TableCell className="dark:text-zinc-200">₹{item.total.toFixed(2)}</TableCell>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {bill.items.map((item) => (
-                    <TableRow key={item.id}>
-                      <TableCell>
-                        <div className="font-medium">{item.product.name}</div>
-                      </TableCell>
-                      <TableCell>{item.product.sku}</TableCell>
-                      <TableCell className="text-right">{item.quantity}</TableCell>
-                      <TableCell className="text-right">${item.price.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">${item.total.toFixed(2)}</TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
 
-          {/* Bill Summary */}
-          <Card>
-            <CardHeader>
-              <CardTitle>Bill Summary</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span>${bill.subtotal.toFixed(2)}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Tax (10%):</span>
-                  <span>${bill.tax.toFixed(2)}</span>
-                </div>
-                {bill.discount > 0 && (
-                  <div className="flex justify-between text-green-600">
-                    <span>Discount:</span>
-                    <span>-${bill.discount.toFixed(2)}</span>
-                  </div>
-                )}
-                <div className="flex justify-between border-t pt-2 font-bold text-lg">
-                  <span>Total:</span>
-                  <span>${bill.total.toFixed(2)}</span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Mark as Paid Button */}
-          {bill.status === "PENDING" && (
-            <Button
-              className="mt-2"
-              onClick={markAsPaid}
-              disabled={updating}
-              variant="default"
-            >
-              {updating ? "Marking as Paid..." : "Mark as Paid"}
-            </Button>
-          )}
-
-          {/* Footer */}
-          <div className="text-center text-muted-foreground text-sm border-t pt-4">
-            <p>Thank you for your business!</p>
-            <p>This is a computer-generated invoice.</p>
+          {/* Totals & Actions */}
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 border-t pt-4">
+            <div className="space-y-2">
+              {bill.status !== "PAID" && (
+                <Button
+                  onClick={markAsPaid}
+                  disabled={updating}
+                  className="bg-green-600 hover:bg-green-700 text-white font-bold px-6 py-2 rounded-full shadow-md transition"
+                >
+                  <BadgeCheck className="h-5 w-5 mr-2" />
+                  {updating ? "Marking as Paid..." : "Mark as Paid"}
+                </Button>
+              )}
+            </div>
+            <div className="space-y-1 text-right dark:text-zinc-100">
+              <div>Subtotal: <span className="font-semibold">₹{bill.subtotal.toFixed(2)}</span></div>
+              <div>Tax: <span className="font-semibold">₹{bill.tax.toFixed(2)}</span></div>
+              <div>Discount: <span className="font-semibold">₹{bill.discount.toFixed(2)}</span></div>
+              <div className="text-lg font-bold">Total: ₹{bill.total.toFixed(2)}</div>
+            </div>
           </div>
         </div>
       </DialogContent>
