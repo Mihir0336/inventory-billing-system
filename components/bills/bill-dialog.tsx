@@ -270,22 +270,18 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Customer Card */}
           <div className="col-span-1 space-y-4">
-            <div className="rounded-lg border bg-card p-6 shadow-sm">
-              <Label htmlFor="customer" className="mb-2 block">Customer</Label>
+            <div className="rounded-lg border bg-card p-4 shadow-sm">
+              <Label htmlFor="customer">Customer</Label>
               <Select value={selectedCustomer} onValueChange={setSelectedCustomer}>
-                <SelectTrigger className="py-3 px-4">
+                <SelectTrigger>
                   <SelectValue placeholder="Select a customer" />
                 </SelectTrigger>
                 <SelectContent>
                   <ScrollArea className="h-48">
                     {customers.map((customer) => (
-                      <SelectItem
-                        key={customer.id}
-                        value={customer.id}
-                        className="py-3 px-4 hover:bg-muted/40 transition-colors rounded flex flex-col items-start gap-0.5"
-                      >
-                        <span className="font-semibold text-base leading-tight">{customer.name}</span>
-                        <span className="text-xs text-muted-foreground leading-tight">{customer.email}</span>
+                      <SelectItem key={customer.id} value={customer.id} className="flex flex-col items-start">
+                        <span className="font-medium">{customer.name}</span>
+                        <span className="text-xs text-muted-foreground">{customer.email}</span>
                       </SelectItem>
                     ))}
                     {customerPage < customerPages && (
@@ -299,16 +295,16 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
             </div>
 
             {/* Product Card */}
-            <div className="rounded-lg border bg-card p-6 shadow-sm space-y-2">
-              <Label htmlFor="product" className="mb-2 block">Product</Label>
+            <div className="rounded-lg border bg-card p-4 shadow-sm space-y-2">
+              <Label htmlFor="product">Product</Label>
               <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                <SelectTrigger className="py-3 px-4">
+                <SelectTrigger>
                   <SelectValue placeholder="Select a product" />
                 </SelectTrigger>
                 <SelectContent>
                   <ScrollArea className="h-48">
                     {products.map((product) => (
-                      <SelectItem key={product.id} value={product.id} className="flex flex-col items-start py-2 px-3">
+                      <SelectItem key={product.id} value={product.id} className="flex flex-col items-start">
                         <span className="font-medium">{product.name} <span className="text-xs text-muted-foreground">({product.sku})</span></span>
                         <span className="text-xs text-muted-foreground">₹{product.price} | Stock: <span className={product.stock < 5 ? 'text-red-500 font-bold' : ''}>{product.stock}</span></span>
                       </SelectItem>
@@ -321,16 +317,15 @@ export function BillDialog({ open, onOpenChange, onBillCreated }: BillDialogProp
                   </ScrollArea>
                 </SelectContent>
               </Select>
-              <div className="flex gap-2 mt-4">
+              <div className="flex gap-2 mt-2">
                 <div className="flex-1">
-                  <Label htmlFor="quantity" className="mb-2 block">Quantity</Label>
+                  <Label htmlFor="quantity">Quantity</Label>
                   <Input
                     id="quantity"
                     type="number"
                     min="1"
                     value={quantity}
                     onChange={(e) => setQuantity(parseInt(e.target.value) || 1)}
-                    className="py-3 px-4"
                   />
                 </div>
                 <div className="flex items-end">
