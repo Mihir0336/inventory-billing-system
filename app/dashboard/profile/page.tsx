@@ -10,6 +10,8 @@ import { Badge } from "@/components/ui/badge"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Camera, Edit, Save, X, User, Mail, Phone, MapPin, Calendar, Shield, Loader2 } from "lucide-react"
+import Image from "next/image"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 interface UserProfile {
   id: string
@@ -27,6 +29,8 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [profileData, setProfileData] = useState<UserProfile | null>(null)
   const [tempData, setTempData] = useState<UserProfile | null>(null)
+  const [selectedImage, setSelectedImage] = useState<File | null>(null)
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const { toast } = useToast()
 
   const fetchProfile = async () => {
@@ -57,6 +61,17 @@ export default function ProfilePage() {
     fetchProfile()
   }, [])
 
+  // Preview selected image
+  useEffect(() => {
+    if (selectedImage) {
+      const url = URL.createObjectURL(selectedImage)
+      setPreviewUrl(url)
+      return () => URL.revokeObjectURL(url)
+    } else {
+      setPreviewUrl(null)
+    }
+  }, [selectedImage])
+
   const handleEdit = () => {
     if (profileData) {
       setTempData(profileData)
@@ -66,28 +81,46 @@ export default function ProfilePage() {
 
   const handleSave = async () => {
     if (!tempData) return
-
     try {
       setSaving(true)
-      const response = await fetch("/api/profile", {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: tempData.name,
-          email: tempData.email,
-        }),
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to update profile")
+      let updatedProfile: UserProfile | null = null
+      if (selectedImage) {
+        // Use FormData for image upload
+        const formData = new FormData()
+        formData.append("name", tempData.name)
+        formData.append("email", tempData.email)
+        formData.append("photo", selectedImage)
+        const response = await fetch("/api/profile", {
+          method: "PUT",
+          body: formData,
+        })
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || "Failed to update profile")
+        }
+        updatedProfile = await response.json()
+      } else {
+        // Fallback to JSON if no image
+        const response = await fetch("/api/profile", {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name: tempData.name,
+            email: tempData.email,
+          }),
+        })
+        if (!response.ok) {
+          const error = await response.json()
+          throw new Error(error.error || "Failed to update profile")
+        }
+        updatedProfile = await response.json()
       }
-
-      const updatedProfile: UserProfile = await response.json()
       setProfileData(updatedProfile)
       setIsEditing(false)
+      setSelectedImage(null)
+      setPreviewUrl(null)
       toast({
         title: "Profile Updated",
         description: "Your profile has been updated successfully.",
@@ -114,6 +147,13 @@ export default function ProfilePage() {
   const handleInputChange = (field: keyof UserProfile, value: string) => {
     if (tempData) {
       setTempData(prev => prev ? { ...prev, [field]: value } : null)
+    }
+  }
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file) {
+      setSelectedImage(file)
     }
   }
 
@@ -193,19 +233,58 @@ export default function ProfilePage() {
         {/* Profile Card */}
         <Card className="md:col-span-1">
           <CardHeader className="text-center">
-            <div className="relative mx-auto mb-4">
-              <Avatar className="h-24 w-24">
-                <AvatarImage src={profileData.image || ""} alt={profileData.name} />
+            <div className="relative mx-auto mb-4 group w-fit">
+              <Avatar
+                className={`h-24 w-24 mx-auto transition-shadow ${isEditing ? 'ring-2 ring-primary/50 group-hover:shadow-lg cursor-pointer' : ''}`}
+                onClick={isEditing ? () => document.getElementById('profile-photo-input')?.click() : undefined}
+                style={{ boxShadow: isEditing ? undefined : 'none' }}
+              >
+                <AvatarImage src={previewUrl || profileData.image || ""} alt={profileData.name} />
                 <AvatarFallback>{profileData.name.split(' ').map(n => n[0]).join('')}</AvatarFallback>
               </Avatar>
               {isEditing && (
-                <Button
-                  size="sm"
-                  className="absolute -bottom-2 -right-2 h-8 w-8 rounded-full p-0"
-                  variant="outline"
-                >
-                  <Camera className="h-4 w-4" />
-                </Button>
+                <>
+                  <input
+                    id="profile-photo-input"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <button
+                          type="button"
+                          className="absolute bottom-0 right-0 mb-1 mr-1 bg-primary text-white rounded-full p-1 shadow-md hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary/50 transition border-2 border-white"
+                          style={{ zIndex: 10 }}
+                          onClick={e => {
+                            e.stopPropagation();
+                            document.getElementById('profile-photo-input')?.click();
+                          }}
+                          tabIndex={0}
+                        >
+                          <Camera className="h-4 w-4" />
+                        </button>
+                      </TooltipTrigger>
+                      <TooltipContent side="top">Change Photo</TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                  {selectedImage && (
+                    <button
+                      type="button"
+                      className="absolute top-2 right-2 bg-white text-red-500 border border-red-200 rounded-full p-1 shadow hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-200 transition"
+                      onClick={e => {
+                        e.stopPropagation();
+                        setSelectedImage(null);
+                        setPreviewUrl(null);
+                      }}
+                      tabIndex={0}
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                  )}
+                </>
               )}
             </div>
             <CardTitle className="text-xl">{profileData.name}</CardTitle>
