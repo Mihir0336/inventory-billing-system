@@ -87,6 +87,11 @@ export const authOptions: AuthOptions = {
     },
     async session({ session, token }: any) {
       if (token) {
+        // Check if user still exists in the database
+        const user = await prisma.user.findUnique({ where: { id: token.id || token.sub } })
+        if (!user) {
+          return null // Force sign-out if user doesn't exist
+        }
         session.user.id = token.id || token.sub!
         session.user.role = token.role as string
       }

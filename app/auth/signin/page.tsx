@@ -170,6 +170,14 @@ export default function SignIn() {
                     required
                   />
                 </div>
+                <div className="flex justify-end">
+                  <a
+                    href="/auth/forgot-password"
+                    className="text-xs text-blue-600 hover:underline"
+                  >
+                    Forgot Password?
+                  </a>
+                </div>
                 <Button type="submit" className="w-full" disabled={isLoading}>
                   <Mail className="mr-2 h-4 w-4" />
                   Sign In

@@ -17,7 +17,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useEffect, useState } from "react"
 
 export function Header() {
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const router = useRouter()
   const pathname = usePathname()
   const [companyName, setCompanyName] = useState("My Company")
@@ -61,6 +61,13 @@ export function Header() {
       fetchCompanyName()
     }
   }, [pathname, session])
+
+  // Redirect to sign-in if session is null (user deleted or logged out)
+  useEffect(() => {
+    if (status === "unauthenticated") {
+      router.push("/auth/signin")
+    }
+  }, [status, router])
 
   // Fetch notifications (low stock)
   const fetchNotifications = async () => {
